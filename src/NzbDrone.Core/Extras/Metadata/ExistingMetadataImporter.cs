@@ -17,10 +17,10 @@ namespace NzbDrone.Core.Extras.Metadata
         private readonly IExtraFileService<MetadataFile> _metadataFileService;
         private readonly IAggregationService _aggregationService;
         private readonly Logger _logger;
-        private readonly List<IMetadata> _consumers;
+        private readonly IMetadataFactory _metadataFactory;
 
         public ExistingMetadataImporter(IExtraFileService<MetadataFile> metadataFileService,
-                                        IEnumerable<IMetadata> consumers,
+                                        IMetadataFactory metadataFactory,
                                         IAggregationService aggregationService,
                                         Logger logger)
         : base(metadataFileService)
@@ -28,7 +28,7 @@ namespace NzbDrone.Core.Extras.Metadata
             _metadataFileService = metadataFileService;
             _aggregationService = aggregationService;
             _logger = logger;
-            _consumers = consumers.ToList();
+            _metadataFactory = metadataFactory;
         }
 
         public override int Order => 0;
@@ -38,6 +38,7 @@ namespace NzbDrone.Core.Extras.Metadata
             _logger.Debug("Looking for existing metadata in {0}", series.Path);
 
             var metadataFiles = new List<MetadataFile>();
+            var consumers = _metadataFactory.Enabled();
             var filterResult = FilterAndClean(series, filesOnDisk, importedFiles, fileNameBeforeRename is not null);
 
             foreach (var possibleMetadataFile in filterResult.FilesOnDisk)
@@ -49,7 +50,7 @@ namespace NzbDrone.Core.Extras.Metadata
                     continue;
                 }
 
-                foreach (var consumer in _consumers)
+                foreach (var consumer in consumers)
                 {
                     var metadata = consumer.FindMetadataFile(series, possibleMetadataFile);
 
